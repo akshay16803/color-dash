@@ -18,8 +18,8 @@ ios/Pods/
 # Keystores
 *.keystore
 
-# Firebase config files (contain project-specific secrets)
-google-services.json
+# Firebase config files
+# google-services.json is needed by EAS Build, so it must be tracked
 GoogleService-Info.plist
 
 # Environment
