@@ -20,8 +20,8 @@ import pt from '@/i18n/locales/pt';
 import ru from '@/i18n/locales/ru';
 import zh from '@/i18n/locales/zh';
 
-type TranslationStrings = typeof en;
-type TranslationKey = keyof TranslationStrings;
+type TranslationStrings = Record<string, string>;
+type TranslationKey = keyof typeof en;
 
 const LOCALES: Record<string, TranslationStrings> = {
   en, ar, de, es, fr, hi, it, ja, ko, pt, ru, zh,

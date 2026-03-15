@@ -16,7 +16,7 @@ export async function initAnalytics(): Promise<void> {
   }
 
   try {
-    const mod = await import('@react-native-firebase/analytics');
+    const mod = require('@react-native-firebase/analytics');
     analyticsModule = mod.default();
     console.log('[Analytics] Firebase Analytics initialized');
   } catch {

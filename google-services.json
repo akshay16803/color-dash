@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "243754140413",
+    "project_id": "color-dash-6ce16",
+    "storage_bucket": "color-dash-6ce16.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:243754140413:android:9950b787519f8ccebdb494",
+        "android_client_info": {
+          "package_name": "com.niprasha.colordash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0l6BAUdfYLHVRT4sXTKFNYfLnc7bfwKI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
