@@ -19,17 +19,11 @@ import type {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-/** Number of lanes the player can be in */
-const NUM_LANES = 4;
-
-/** Width of each lane */
-const LANE_WIDTH = SCREEN_WIDTH / NUM_LANES;
-
 /** Player position from bottom */
 const PLAYER_Y = SCREEN_HEIGHT - 140;
 
-/** Height of each color gate */
-const GATE_HEIGHT = 60;
+/** Height of each color gate (thin line) */
+const GATE_HEIGHT = 8;
 
 /** Default difficulty configuration */
 const DIFFICULTY: DifficultyConfig = {
@@ -60,7 +54,6 @@ function createGate(y: number): ColorGate {
     color: randomColor(),
     y,
     passed: false,
-    laneIndex: Math.floor(Math.random() * NUM_LANES),
   };
 }
 
@@ -82,7 +75,6 @@ function createSession(): GameSession {
 export function useGameEngine() {
   const [session, setSession] = useState<GameSession>(createSession);
   const [gates, setGates] = useState<ColorGate[]>([]);
-  const [playerLane, setPlayerLane] = useState(1);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
@@ -90,14 +82,12 @@ export function useGameEngine() {
   // Refs for the game loop (avoid stale closures)
   const sessionRef = useRef(session);
   const gatesRef = useRef(gates);
-  const playerLaneRef = useRef(playerLane);
   const rafRef = useRef<number | null>(null);
   const lastSpawnY = useRef(-DIFFICULTY.maxGateSpacing);
 
   // Keep refs in sync
   sessionRef.current = session;
   gatesRef.current = gates;
-  playerLaneRef.current = playerLane;
 
   /**
    * Load player stats on mount.
@@ -107,26 +97,17 @@ export function useGameEngine() {
   }, []);
 
   /**
-   * Move player to a specific lane (0-3).
+   * Cycle player color to the next color in the sequence.
    */
-  const moveToLane = useCallback((lane: number) => {
-    if (lane >= 0 && lane < NUM_LANES) {
-      setPlayerLane(lane);
-    }
-  }, []);
-
-  /**
-   * Move player left by one lane.
-   */
-  const moveLeft = useCallback(() => {
-    setPlayerLane((prev) => Math.max(0, prev - 1));
-  }, []);
-
-  /**
-   * Move player right by one lane.
-   */
-  const moveRight = useCallback(() => {
-    setPlayerLane((prev) => Math.min(NUM_LANES - 1, prev + 1));
+  const cycleColor = useCallback(() => {
+    setSession((prev) => {
+      const currentIndex = COLORS.indexOf(prev.playerColor);
+      const nextIndex = (currentIndex + 1) % COLORS.length;
+      return {
+        ...prev,
+        playerColor: COLORS[nextIndex],
+      };
+    });
   }, []);
 
   /**
@@ -152,14 +133,13 @@ export function useGameEngine() {
         // Check if gate has reached the player's Y position
         const gateBottom = gate.y + GATE_HEIGHT;
         if (gateBottom >= PLAYER_Y && gate.y <= PLAYER_Y + 40) {
-          const isInCorrectLane = playerLaneRef.current === gate.laneIndex;
           const isCorrectColor = s.playerColor === gate.color;
 
-          if (isInCorrectLane && isCorrectColor) {
+          if (isCorrectColor) {
             scoreIncrease += 10 + s.currentCombo * 2;
             gatesPassed += 1;
-          } else if (gateBottom >= PLAYER_Y + 30) {
-            // Missed or wrong — game over
+          } else {
+            // Color mismatch — game over
             missed = true;
           }
           return { ...gate, passed: true };
@@ -192,8 +172,6 @@ export function useGameEngine() {
             currentCombo: newCombo,
             maxCombo: Math.max(prev.maxCombo, newCombo),
             speed: newSpeed,
-            // Change player color after each gate
-            playerColor: randomColor(),
           };
         });
       }
@@ -230,7 +208,6 @@ export function useGameEngine() {
 
     setSession(newSession);
     setGates([createGate(-100), createGate(-350)]);
-    setPlayerLane(1);
     setIsGameOver(false);
     setIsNewHighScore(false);
 
@@ -305,7 +282,6 @@ export function useGameEngine() {
     // State
     session,
     gates,
-    playerLane,
     playerY: PLAYER_Y,
     isGameOver,
     isNewHighScore,
@@ -313,15 +289,11 @@ export function useGameEngine() {
 
     // Actions
     startGame,
-    moveToLane,
-    moveLeft,
-    moveRight,
+    cycleColor,
     pause,
     resume,
 
     // Constants
-    laneWidth: LANE_WIDTH,
-    numLanes: NUM_LANES,
     gateHeight: GATE_HEIGHT,
     screenWidth: SCREEN_WIDTH,
     screenHeight: SCREEN_HEIGHT,

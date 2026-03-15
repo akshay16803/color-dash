@@ -22,8 +22,6 @@ export interface ColorGate {
   color: GameColor;
   y: number;
   passed: boolean;
-  /** Position of the correct-color lane (0-3) */
-  laneIndex: number;
 }
 
 /** Current state of a game session */
@@ -69,7 +67,6 @@ export interface GameEngineState {
   session: GameSession;
   gates: ColorGate[];
   playerY: number;
-  playerLane: number;
   isGameOver: boolean;
   isNewHighScore: boolean;
   playerStats: PlayerStats | null;
