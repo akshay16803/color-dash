@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#1A1A2E"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.niprasha.colordash"
@@ -29,6 +31,14 @@
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/auth"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "56990b8a-e7c5-4648-bc38-97f9dad14bc4"
+      }
+    }
   }
 }
