@@ -11,13 +11,13 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "ubuntu-22.04-jdk-17-ndk-25-b2"
+        "image": "sdk-50"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle",
-        "image": "ubuntu-22.04-jdk-17-ndk-25-b2"
+        "image": "sdk-50"
       }
     }
   },
