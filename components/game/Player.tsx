@@ -12,9 +12,9 @@ import Animated, {
 import { COLOR_MAP, GAME_COLORS, type GameColor } from '@/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const PLAYER_SIZE = 50;
-const INDICATOR_SIZE = 20;
-const ACTIVE_INDICATOR_SIZE = 28;
+const PLAYER_SIZE = 30; // 40% smaller than original 50
+const INDICATOR_SIZE = 14; // scaled down proportionally
+const ACTIVE_INDICATOR_SIZE = 20; // scaled down proportionally
 const INDICATOR_SPACING = 8;
 
 interface PlayerProps {

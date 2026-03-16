@@ -22,6 +22,7 @@ import {
   getMyRank,
   getCurrentUserId,
   isFirebaseAuthenticated,
+  ensureAuthenticated,
   type LeaderboardEntry,
 } from '@/utils/firestore';
 import { Analytics } from '@/utils/analytics';
@@ -123,8 +124,8 @@ export default function LeaderboardScreen() {
     }
   }, [entries, userId]);
 
-  // Subscribe to real-time leaderboard
-  const loadLeaderboard = useCallback(() => {
+  // Subscribe to real-time leaderboard (ensure auth first)
+  const loadLeaderboard = useCallback(async () => {
     setLoading(true);
     setError(null);
     setEntries([]);
@@ -132,6 +133,16 @@ export default function LeaderboardScreen() {
     if (unsubRef.current) {
       unsubRef.current();
       unsubRef.current = null;
+    }
+
+    // Ensure user is authenticated before querying (Firestore rules require auth)
+    try {
+      await ensureAuthenticated();
+    } catch {
+      // If auth fails, show empty leaderboard instead of error
+      setLoading(false);
+      setEntries([]);
+      return;
     }
 
     unsubRef.current = subscribeToLeaderboard(
@@ -142,9 +153,17 @@ export default function LeaderboardScreen() {
         setLoading(false);
         setError(null);
       },
-      (_err) => {
-        setLoading(false);
-        setError(t('leaderboard_error'));
+      (err) => {
+        // If it's a missing index error, show empty state instead of error
+        const errMsg = err?.message ?? '';
+        if (errMsg.includes('index') || errMsg.includes('requires an index')) {
+          console.warn('[Leaderboard] Missing Firestore index, showing empty state');
+          setEntries([]);
+          setLoading(false);
+        } else {
+          setLoading(false);
+          setError(t('leaderboard_error'));
+        }
       }
     );
   }, [selectedLeague, t]);

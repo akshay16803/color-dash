@@ -200,17 +200,21 @@ export function subscribeToLeaderboard(
 
   try {
     const db = getFirestore();
+
+    // Use a simple query that doesn't require a composite index.
+    // Filter by league, then sort client-side.
     return db
       .collection('users')
       .where('league', '==', league)
-      .orderBy('bestScore', 'desc')
       .limit(limit)
       .onSnapshot(
         (snapshot: any) => {
-          const entries: LeaderboardEntry[] = snapshot.docs.map((doc: any) => ({
-            userId: doc.id,
-            ...doc.data(),
-          }));
+          const entries: LeaderboardEntry[] = snapshot.docs
+            .map((doc: any) => ({
+              userId: doc.id,
+              ...doc.data(),
+            }))
+            .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.bestScore - a.bestScore);
           onData(entries);
         },
         (error: any) => {
