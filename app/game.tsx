@@ -58,7 +58,7 @@ export default function GameScreen() {
         .then((result) => setLeagueResult(result))
         .catch(() => {});
     }
-  }, [engine.isGameOver]);
+  }, [engine.isGameOver, engine.playerStats, league]);
 
   /**
    * Handle retry — reset everything.

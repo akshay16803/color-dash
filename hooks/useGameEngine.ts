@@ -132,7 +132,7 @@ export function useGameEngine() {
 
         // Check if gate has reached the player's Y position
         const gateBottom = gate.y + GATE_HEIGHT;
-        if (gateBottom >= PLAYER_Y && gate.y <= PLAYER_Y + 40) {
+        if (gateBottom >= PLAYER_Y && gate.y <= PLAYER_Y + 30) {
           const isCorrectColor = s.playerColor === gate.color;
 
           if (isCorrectColor) {
