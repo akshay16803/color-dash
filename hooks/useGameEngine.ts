@@ -7,14 +7,14 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dimensions } from 'react-native';
 import { updateStatsAfterGame, loadPlayerStats } from '@/utils/storage';
 import { Analytics } from '@/utils/analytics';
-import type {
-  GameSession,
-  GameColor,
-  ColorGate,
-  PlayerStats,
-  GameEngineState,
-  DifficultyConfig,
+import {
   GAME_COLORS,
+  type GameSession,
+  type GameColor,
+  type ColorGate,
+  type PlayerStats,
+  type GameEngineState,
+  type DifficultyConfig,
 } from '@/types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -34,8 +34,8 @@ const DIFFICULTY: DifficultyConfig = {
   maxGateSpacing: 350,
 };
 
-/** All game colors */
-const COLORS: GameColor[] = ['red', 'blue', 'green', 'yellow'];
+/** All game colors (imported from types) */
+const COLORS = GAME_COLORS;
 
 /** Generate a unique ID */
 function uid(): string {
@@ -161,14 +161,15 @@ export function useGameEngine() {
       if (scoreIncrease > 0) {
         setSession((prev) => {
           const newCombo = prev.currentCombo + gatesPassed;
+          const newGatesPassed = prev.gatesPassed + gatesPassed;
           const newSpeed = Math.min(
             DIFFICULTY.maxSpeed,
-            DIFFICULTY.baseSpeed + prev.gatesPassed * DIFFICULTY.speedIncrement
+            DIFFICULTY.baseSpeed + newGatesPassed * DIFFICULTY.speedIncrement
           );
           return {
             ...prev,
             score: prev.score + scoreIncrease,
-            gatesPassed: prev.gatesPassed + gatesPassed,
+            gatesPassed: newGatesPassed,
             currentCombo: newCombo,
             maxCombo: Math.max(prev.maxCombo, newCombo),
             speed: newSpeed,

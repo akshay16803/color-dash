@@ -193,35 +193,61 @@ export function subscribeToLeaderboard(
   onError: (error: any) => void
 ): () => void {
   if (!isFirebaseAvailable()) {
-    // No Firebase — return empty and a no-op unsubscribe
     onData([]);
     return () => {};
   }
 
+  // Track both primary and fallback unsubscribes for cleanup
+  let primaryUnsub: (() => void) | null = null;
+  let fallbackUnsub: (() => void) | null = null;
+
   try {
     const db = getFirestore();
 
-    // Use a simple query that doesn't require a composite index.
-    // Filter by league, then sort client-side.
-    return db
+    // Try compound query (requires Firestore composite index on league + bestScore).
+    primaryUnsub = db
       .collection('users')
       .where('league', '==', league)
+      .orderBy('bestScore', 'desc')
       .limit(limit)
       .onSnapshot(
         (snapshot: any) => {
-          const entries: LeaderboardEntry[] = snapshot.docs
-            .map((doc: any) => ({
-              userId: doc.id,
-              ...doc.data(),
-            }))
-            .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.bestScore - a.bestScore);
+          const entries: LeaderboardEntry[] = snapshot.docs.map((doc: any) => ({
+            userId: doc.id,
+            ...doc.data(),
+          }));
           onData(entries);
         },
         (error: any) => {
-          console.warn('[Firestore] Leaderboard subscription error:', error);
-          onError(error);
+          const errMsg = error?.message ?? '';
+          if (errMsg.includes('index') || errMsg.includes('FAILED_PRECONDITION')) {
+            // Missing composite index — fall back to client-side sort
+            console.warn('[Firestore] Missing composite index, using client-side sort');
+            if (primaryUnsub) primaryUnsub();
+            fallbackUnsub = db
+              .collection('users')
+              .where('league', '==', league)
+              .limit(limit)
+              .onSnapshot(
+                (snap: any) => {
+                  const entries: LeaderboardEntry[] = snap.docs
+                    .map((doc: any) => ({ userId: doc.id, ...doc.data() }))
+                    .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.bestScore - a.bestScore);
+                  onData(entries);
+                },
+                (fallbackErr: any) => onError(fallbackErr)
+              );
+          } else {
+            onError(error);
+          }
         }
       );
+
+    // Return cleanup function that unsubscribes from whichever is active
+    return () => {
+      if (primaryUnsub) primaryUnsub();
+      if (fallbackUnsub) fallbackUnsub();
+    };
   } catch (error) {
     onError(error);
     return () => {};
