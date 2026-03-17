@@ -100,32 +100,51 @@ export default function LeaderboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const [myRank, setMyRank] = useState<number>(-1);
   const [myBestScore, setMyBestScore] = useState(0);
+  const [isGuest, setIsGuest] = useState(!isFirebaseAuthenticated());
   const unsubRef = useRef<(() => void) | null>(null);
-  const userId = getCurrentUserId();
-  const isGuest = !isFirebaseAuthenticated();
+  const isMountedRef = useRef(true);
+  const loadGenRef = useRef(0);
 
+  // Derive userId from state so it updates after auth
+  const userId = getCurrentUserId();
   const selectedDef = LEAGUES.find((l) => l.id === selectedLeague) ?? LEAGUES[0];
+
+  // Track mounted state for safe async updates
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Track analytics when league changes
   useEffect(() => {
     Analytics.leaderboardViewed(selectedLeague);
   }, [selectedLeague]);
 
-  // Fetch user's rank in selected league
+  // Calculate rank locally from entries (avoids needing composite index for getMyRank)
   useEffect(() => {
-    getMyRank(selectedLeague).then(setMyRank);
-  }, [selectedLeague, entries]);
-
-  // Find user's best score from entries
-  useEffect(() => {
-    if (userId) {
-      const myEntry = entries.find((e) => e.userId === userId);
-      if (myEntry) setMyBestScore(myEntry.bestScore);
+    const uid = getCurrentUserId();
+    if (!uid || entries.length === 0) {
+      setMyRank(-1);
+      setMyBestScore(0);
+      return;
     }
-  }, [entries, userId]);
+    const myIndex = entries.findIndex((e) => e.userId === uid);
+    if (myIndex >= 0) {
+      setMyRank(myIndex + 1);
+      setMyBestScore(entries[myIndex].bestScore);
+    } else {
+      // User not in top 50 — try Firestore query as fallback
+      getMyRank(selectedLeague).then((rank) => {
+        if (isMountedRef.current) setMyRank(rank);
+      });
+    }
+  }, [entries, selectedLeague]);
 
   // Subscribe to real-time leaderboard (ensure auth first)
   const loadLeaderboard = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    const currentGen = ++loadGenRef.current;
+
     setLoading(true);
     setError(null);
     setEntries([]);
@@ -138,26 +157,40 @@ export default function LeaderboardScreen() {
     // Ensure user is authenticated before querying (Firestore rules require auth)
     try {
       await ensureAuthenticated();
+      if (isMountedRef.current) {
+        setIsGuest(!isFirebaseAuthenticated());
+      }
     } catch {
-      // If auth fails, show empty leaderboard instead of error
-      setLoading(false);
-      setEntries([]);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setEntries([]);
+        setIsGuest(true);
+      }
       return;
     }
+
+    // Ignore if a newer load was triggered (rapid tab switching)
+    if (currentGen !== loadGenRef.current) return;
 
     unsubRef.current = subscribeToLeaderboard(
       selectedLeague,
       50,
       (newEntries) => {
+        if (!isMountedRef.current || currentGen !== loadGenRef.current) return;
         setEntries(newEntries);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        // If it's a missing index error, show empty state instead of error
+        if (!isMountedRef.current || currentGen !== loadGenRef.current) return;
         const errMsg = err?.message ?? '';
-        if (errMsg.includes('index') || errMsg.includes('requires an index')) {
-          console.warn('[Leaderboard] Missing Firestore index, showing empty state');
+        if (
+          errMsg.includes('index') ||
+          errMsg.includes('FAILED_PRECONDITION') ||
+          errMsg.includes('PERMISSION_DENIED') ||
+          errMsg.includes('permission')
+        ) {
+          // Missing index or auth issue — show empty state gracefully
           setEntries([]);
           setLoading(false);
         } else {
