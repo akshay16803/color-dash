@@ -204,6 +204,18 @@ export function subscribeToLeaderboard(
   try {
     const db = getFirestore();
 
+    /** Filter out any malformed documents missing required fields */
+    function parseEntries(docs: any[]): LeaderboardEntry[] {
+      return docs
+        .map((doc: any) => ({ userId: doc.id, ...doc.data() }))
+        .filter((e: any) =>
+          typeof e.userId === 'string' &&
+          typeof e.displayName === 'string' &&
+          typeof e.bestScore === 'number' &&
+          typeof e.league === 'string'
+        ) as LeaderboardEntry[];
+    }
+
     // Try compound query (requires Firestore composite index on league + bestScore).
     primaryUnsub = db
       .collection('users')
@@ -212,11 +224,7 @@ export function subscribeToLeaderboard(
       .limit(limit)
       .onSnapshot(
         (snapshot: any) => {
-          const entries: LeaderboardEntry[] = snapshot.docs.map((doc: any) => ({
-            userId: doc.id,
-            ...doc.data(),
-          }));
-          onData(entries);
+          onData(parseEntries(snapshot.docs));
         },
         (error: any) => {
           const errMsg = error?.message ?? '';
@@ -230,9 +238,8 @@ export function subscribeToLeaderboard(
               .limit(limit)
               .onSnapshot(
                 (snap: any) => {
-                  const entries: LeaderboardEntry[] = snap.docs
-                    .map((doc: any) => ({ userId: doc.id, ...doc.data() }))
-                    .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.bestScore - a.bestScore);
+                  const entries = parseEntries(snap.docs)
+                    .sort((a, b) => b.bestScore - a.bestScore);
                   onData(entries);
                 },
                 (fallbackErr: any) => onError(fallbackErr)
