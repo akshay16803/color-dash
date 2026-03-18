@@ -172,16 +172,29 @@ export default function LeaderboardScreen() {
     // Ignore if a newer load was triggered (rapid tab switching)
     if (currentGen !== loadGenRef.current) return;
 
+    // Safety timeout — if Firestore never responds within 8s, show error
+    const timeoutId = setTimeout(() => {
+      if (!isMountedRef.current || currentGen !== loadGenRef.current) return;
+      if (unsubRef.current) {
+        unsubRef.current();
+        unsubRef.current = null;
+      }
+      setLoading(false);
+      setError(t('leaderboard_error'));
+    }, 8000);
+
     unsubRef.current = subscribeToLeaderboard(
       selectedLeague,
       50,
       (newEntries) => {
+        clearTimeout(timeoutId);
         if (!isMountedRef.current || currentGen !== loadGenRef.current) return;
         setEntries(newEntries);
         setLoading(false);
         setError(null);
       },
       (err) => {
+        clearTimeout(timeoutId);
         if (!isMountedRef.current || currentGen !== loadGenRef.current) return;
         const errMsg = err?.message ?? '';
         if (
