@@ -19,8 +19,9 @@ ios/Pods/
 *.keystore
 
 # Firebase config files
-# google-services.json is needed by EAS Build, so it must be tracked
-GoogleService-Info.plist
+# Both files are needed by EAS Build, so they must be tracked
+# google-services.json - Android
+# GoogleService-Info.plist - iOS
 
 # Environment
 .env

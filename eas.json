@@ -12,12 +12,18 @@
       "android": {
         "buildType": "apk",
         "image": "sdk-50"
+      },
+      "ios": {
+        "simulator": false
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle",
         "image": "sdk-50"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
       }
     }
   },
